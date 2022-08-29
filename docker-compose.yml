@@ -1,0 +1,34 @@
+version: '3.8'
+services:
+  web: 
+    image: pramsey/pg_featureserv:latest
+    ports:
+      - "9000:9000"
+    environment:
+    # db string variable from .env
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+  db: 
+    image: kartoza/postgis:14-3.1
+    env_file:     
+       - ./.env    
+    environment:      
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASS=${POSTGRES_PASSWORD}
+      - ALLOW_IP_RANGE=0.0.0.0/0
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+      - ./bristol_green_space.sql:/docker-entrypoint-initdb.d/bristol_green_space.sql
+    ports:
+      - 5435:5432
+    healthcheck:
+      # healthcheck to prevent web container failing at startup
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+volumes:
+  postgres_data:
